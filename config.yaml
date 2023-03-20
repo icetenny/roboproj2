@@ -4,23 +4,23 @@ conda-exec: "conda"
 processes:
   yolov8:
     conda_env: "mod-yolov8"
-    exec_dir: "/home/ice/ise/roboproj2/roboproj2-main"
+    exec_dir: "/home/ice/ise/roboproj2/roboproj2_main"
     exec_cmd: "python3 yolo_server.py"
   ocr:
     conda_env: "mod-yolov8"
-    exec_dir: "/home/ice/ise/roboproj2/roboproj2-main"
+    exec_dir: "/home/ice/ise/roboproj2/roboproj2_main"
     exec_cmd: "python3 textreader_server.py"
   translate:
     conda_env: "mod-yolov8"
-    exec_dir: "/home/ice/ise/roboproj2/roboproj2-main"
+    exec_dir: "/home/ice/ise/roboproj2/roboproj2_main"
     exec_cmd: "python3 translate_server.py"
   image-captioning:
     conda_env: "mod-yolov8"
-    exec_dir: "/home/ice/ise/roboproj2/roboproj2-main"
+    exec_dir: "/home/ice/ise/roboproj2/roboproj2_main"
     exec_cmd: "python3 image_captioning.py"
   line:
     conda_env: "mod-yolov8"
-    exec_dir: "/home/ice/ise/roboproj2/roboproj2-main"
+    exec_dir: "/home/ice/ise/roboproj2/roboproj2_main"
     exec_cmd: "python3 line_server.py"
 states:
   default:
