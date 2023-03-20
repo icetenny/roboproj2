@@ -1,0 +1,143 @@
+from ultralytics import YOLO
+import cv2
+import time
+import numpy as np
+from ultralytics.yolo.utils.plotting import Annotator, colors, save_one_box
+from ultralytics.yolo.utils.torch_utils import select_device
+import yaml
+from random import randint
+from ultralytics.SORT import *
+import pytesseract
+
+model = YOLO("textdetv2.pt")
+
+# For coco
+# with open("ultralytics/yolo/data/datasets/coco8-seg.yaml", "r") as stream:
+#     try:
+#         datasets = yaml.safe_load(stream)
+#         datasets_names = datasets['names']
+#     except:
+#         print("No file found")
+#         datasets_names = ""
+
+datasets_names = {0: "text"}
+
+
+def init_tracker():
+    global tracker
+    sort_max_age = 10
+    sort_min_hits = 6
+    sort_iou_thresh = 0.2
+    tracker = Sort(max_age=sort_max_age, min_hits=sort_min_hits,
+                   iou_threshold=sort_iou_thresh)
+
+
+def draw_box(img, bbox, id=None, label=None):
+    x1, y1, x2, y2 = bbox
+    # print(x1, y1, x2, y2)
+    cv2.rectangle(img, (x1, y1), (x2, y2), rand_color_list[id % 20], 3)
+    cv2.putText(img, f"{id}:{label}", (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX,
+                1, rand_color_list[id % 20], 2)
+    return img
+
+def readtext(image, bbox, id, res):
+    # print("bbox read", bbox)
+    x1, y1, x2, y2 = bbox
+    x1 = max(x1,0)
+    y1 = max(y1,0)
+    # x1,y1,x2,y2 = bbox_xyxy
+    text_frame = cv2.cvtColor(image[y1:y2, x1:x2], cv2.COLOR_BGR2RGB)
+    # cv2.imshow("a", text_frame)
+    # cv2.waitKey(1000)
+    out = pytesseract.image_to_string(text_frame).replace("\n", " ").strip('\f').strip()
+    print(id, out)
+
+    if id not in res:
+        if res != "":
+            res[id] = out
+    else:
+        if len(out) > len(res[id]):
+            res[id] = out
+
+
+
+
+l = []
+for i in range(10):
+    try:
+        if cv2.VideoCapture(i).read()[0]:
+            l+=[i]
+    except:
+        pass
+
+if len(l) == 1:
+    ind = l[0]
+else:
+
+    print(f"\nAvailable Cam index : {l}")
+    ind = int(input("Cam index : "))
+
+
+
+start = time.time()
+cap = cv2.VideoCapture(ind)
+
+init_tracker()
+rand_color_list = np.random.rand(20, 3) * 255
+
+read_res = {}
+
+while cap.isOpened():
+    res = []
+    ret, frame = cap.read()
+    if not ret:
+        print("Error")
+        continue
+
+    
+    start = time.time()
+    frame2 = np.copy(frame)
+
+    results = model.predict(source=frame, conf=0.3, show=0)[0]
+    if results.boxes:
+        # print(f"DETECT {len(results.boxes)}")
+        output = dict()
+        dets_to_sort = np.empty((0, 6))
+
+        for i, obj in enumerate(results.boxes):
+            x1, y1, x2, y2, conf, cls = obj.data.cpu().detach().numpy()[0]
+            name = datasets_names[int(cls)] if datasets_names else 'unknown'
+
+            output[i] = [name, x1, y1, x2, y2]
+
+            dets_to_sort = np.vstack((dets_to_sort,
+                                      np.array([x1, y1, x2, y2, conf, cls])))
+        # print(dets_to_sort)
+
+        tracked_dets = tracker.update(dets_to_sort)
+        # print(tracked_dets)
+        for tk in tracked_dets:
+            bbox_xyxy = [int(p) for p in tk[:4]]
+            id = int(tk[8])
+            name = datasets_names[tk[4]]
+            # print(bbox_xyxy, id, name)
+            
+
+
+            draw_box(frame2, bbox_xyxy, id, name)
+            res.append([name, bbox_xyxy])
+            readtext(frame2, bbox_xyxy, id, read_res)
+
+    # print(output)
+    # print("res", res)
+    
+
+    cv2.putText(frame2, "fps: " + str(round(1 / (time.time() - start), 2)), (10, int(cap.get(4)) - 10),
+                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+
+    cv2.imshow("frame", frame2)
+
+    if cv2.waitKey(1) == ord("q"):
+        cap.release()
+print(read_res)
+cv2.destroyAllWindows()
