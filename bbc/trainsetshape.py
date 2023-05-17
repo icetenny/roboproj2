@@ -51,10 +51,11 @@ def get_shape_data(pic_gray, start_point):
 
 RESIZE_DIM = 120
 SLOT_DIM = 20
-TOPLEFT = (129,12)
-BOTRIGHT = (522,408)
+TOPLEFT = (123,16)
+BOTRIGHT = (511,408)
 
 pos_index = 0
+n_slot = 9
 label = 0
 l = []
 for i in range(10):
@@ -97,7 +98,8 @@ while cap.isOpened():
     # for c in center_list:
     #     draw_points(frame_show, c, 3, (0,0,0))
 
-    draw_points(frame_show, center_list[pos_index], 3, (0,0,0))
+    for n in range(n_slot):
+        draw_points(frame_show, center_list[(pos_index+n)%36], 3, (0,0,0))
     
 
     frame_show = cv2.resize(frame_show, (480,480))
@@ -113,8 +115,10 @@ while cap.isOpened():
     elif key == ord('s'):
         fshape = open("train_shape.csv", "a")
 
-        print(f"SAVING AT POSITION {pos_index}, LABEL = {label}")
-        fshape.write(get_shape_data(frame_gray, start_point_list[pos_index])+f",{label}\n")
+        for n in range(n_slot):
+
+            print(f"SAVING AT POSITION {(pos_index+n)%36}, LABEL = {label}")
+            fshape.write(get_shape_data(frame_gray, start_point_list[(pos_index+n)%36])+f",{label}\n")
         cv2.imshow("frame", np.ones(frame_show.shape)*255)
         cv2.waitKey(50)
 
@@ -123,7 +127,7 @@ while cap.isOpened():
         print("CHANGING LABEL")
         while True:
             newlabel = int(input("INPUT NEW INDEX: "))
-            if newlabel in range(9):
+            if newlabel in range(10):
                 label = newlabel
                 print("NEW LABEL", label)
                 break

@@ -111,7 +111,7 @@ while cap.isOpened():
         print("CHANGING LABEL")
         while True:
             newlabel = int(input("INPUT NEW INDEX: "))
-            if newlabel in range(9):
+            if newlabel in range(10):
                 label = newlabel
                 print("NEW LABEL", label)
                 break
