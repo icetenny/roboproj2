@@ -2,47 +2,30 @@ import argparse
 import json
 import os
 import socket
+from pickle import NONE
 from custom_socket import CustomSocket
-from ultralytics import YOLO
-import cv2
-import time
 import numpy as np
+import time
+from ultralytics.SORT import *
+import cv2
+from ultralytics import YOLO
 from ultralytics.yolo.utils.plotting import Annotator, colors, save_one_box
 from ultralytics.yolo.utils.torch_utils import select_device
 import yaml
-from random import randint
-from ultralytics.SORT import *
-import pytesseract
+from line import *
 
-WEIGHT = "textdetv2.pt"
-DATASET_NAME = {0: "text"}
 
-def readtext(image, bbox, id, lang="eng"):
-    # print("bbox read", bbox)
-    x1, y1, x2, y2 = bbox
-    x1 = max(x1,0)
-    y1 = max(y1,0)
-    # x1,y1,x2,y2 = bbox_xyxy
-    text_frame = cv2.cvtColor(image[y1:y2, x1:x2], cv2.COLOR_BGR2RGB)
-    # cv2.imshow("a", text_frame)
-    # cv2.waitKey(1000)
-    out = pytesseract.image_to_string(text_frame, lang=lang).replace("\n", " ").strip('\f').strip()
-    print(id, out)
-    return out
-
-    # if id not in res:
-    #     if res != "":
-    #         res[id] = out
-    # else:
-    #     if len(out) > len(res[id]):
-    #         res[id] = out
+WEIGHT = "yolov8s.pt"
+# WEIGHT = "all2ndvidbest.pt"
+DATASET_NAME = "coco"
 
 
 class V8Tracker:
-    def __init__(self, weight="yolov8s-seg.pt", conf=0.7, dataset_name="coco", sort_max_age=10, sort_min_hits=6, sort_iou_thresh=0.2, show_result=False):
+    def __init__(self, weight="yolov8s-seg.pt", conf=0.4, dataset_name="coco", sort_max_age=10, sort_min_hits=5, sort_iou_thresh=0.2, show_result=False):
         self.tracker = Sort(max_age=sort_max_age, min_hits=sort_min_hits,
                             iou_threshold=sort_iou_thresh)
         self.model = YOLO(weight)
+        self.model.predict(np.zeros((1,1,3)))
         self.rand_color_list = np.random.rand(20, 3) * 255
         self.conf = conf
         self.show_result = show_result
@@ -58,8 +41,6 @@ class V8Tracker:
         else:
             # In format of {0: name0, 1: name1, ...}
             self.datasets_names = dataset_name
-        self.model.predict(np.zeros((1,1,3)))
-        print("Done..")
 
     def draw_box(self, img, bbox, id=None, label=None):
         x1, y1, x2, y2 = bbox
@@ -81,8 +62,11 @@ class V8Tracker:
 
             for i, obj in enumerate(self.results.boxes):
                 x1, y1, x2, y2, conf, cls = obj.data.cpu().detach().numpy()[0]
+                if cls not in [1,2,3,5,7,11]:
+                    continue
                 name = self.datasets_names[int(
                     cls)] if self.datasets_names else 'unknown'
+                
 
                 output[i] = [name, x1, y1, x2, y2]
 
@@ -105,15 +89,18 @@ class V8Tracker:
 
 
 def main():
-    HOST = "192.168.1.53"
+    # notify(ipinfo())
+
+
+    HOST = "192.168.134.28"
     # HOST = "192.168.8.99"
-    PORT = 10000
+    PORT = 10020
 
     server = CustomSocket(HOST, PORT)
     server.startServer()
 
     V8T = V8Tracker(weight=WEIGHT, dataset_name=DATASET_NAME,
-                    show_result=False, conf=0.3)
+                    show_result=False)
 
     while True:
         conn, addr = server.sock.accept()
@@ -121,28 +108,23 @@ def main():
         while True:
             try:
                 data = server.recvMsg(conn)
-                # img = np.frombuffer(data, dtype=np.uint8).reshape(360, 640, 3)
-                # img = np.frombuffer(data, dtype=np.uint8).reshape(360, 640, 3)
-                img = np.frombuffer(data, dtype=np.uint8).reshape(720, 1280, 3)
-                img2 = np.copy(img)
+                # img = np.frombuffer(data, dtype=np.uint8).reshape(720, 1280, 3)
+                img = np.frombuffer(data, dtype=np.uint8).reshape(360, 640, 3)
+                # img = np.frombuffer(data, dtype=np.uint8).reshape(720, 1280, 3)
 
                 sol, drawn_frame = V8T.track(img)
 
                 out = {}
-                # obj = []
-                # formatted_bbox = []
+                obj = []
+                formatted_bbox = []
 
                 for s in sol:
                     id, cls, classname, x, y, w, h = s
-                    # obj.append([id, cls, classname, x, y, w, h])
-                    # formatted_bbox.append([classname, (x, y, w, h), False])
-                    out[id] = readtext(img2, (x,y,x+w,y+h), id, lang='eng')
-
-
-                # out["result"] = obj
-                # out["n"] = len(obj)
+                    obj.append([id, cls, classname, x, y, w, h])
+                    formatted_bbox.append([classname, (x, y, w, h), False])
+                out["result"] = obj
+                out["n"] = len(obj)
                 print(out)
-
                 server.sendMsg(conn, json.dumps(out, indent=4))
 
                 cv2.imshow("Result image", drawn_frame)

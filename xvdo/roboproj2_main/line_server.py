@@ -7,12 +7,13 @@ import json
 import numpy as np
 # import cv2
 import nlp
+import line
 
 
 def main():
     # HOST = socket.gethostname()
-    HOST = "192.168.1.53"
-    PORT = 10030
+    HOST = "192.168.134.28"
+    PORT = 10040
 
     server = CustomSocket(HOST, PORT)
     server.startServer()
@@ -31,17 +32,10 @@ def main():
                 text = data.decode('utf-8')
                 print(text)
 
-                mode, t = text[:2], text[2:]
-                if mode == "&&":
-                    tran_text = nlp.translate(t, mode=1)
-                else:
-
-                    tran_text = nlp.translate(t)
-
-                print(tran_text)
+                line.notify(text)
 
                 print("send")
-                server.sendMsg(conn, json.dumps(tran_text))
+                server.sendMsg(conn, json.dumps(f"Sent via Line: {text}"))
 
 
             except Exception as e:
@@ -50,25 +44,6 @@ def main():
                 break
 
 
-# def main():
-#     cap = cv2.VideoCapture(0)
-#     while cap.isOpened():
-#         ret, frame = cap.read()
-#         if not ret:
-#             print("Error")
-
-#         cv2.imshow("frame", frame)
-
-#         if cv2.waitKey(1) == ord('q'):
-            
-#             text = describe(frame)
- 
-#             print(text)
-
-#             cap.release()
-    
-#     cv2.waitKey()
-#     cv2.destroyAllWindows()
 
 
 if __name__ == '__main__':

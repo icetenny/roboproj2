@@ -39,7 +39,7 @@ def describe(frame, resource_name="meen-test", Ocp_key='d579e048b37d46d683c1482b
 
 def main():
     # HOST = socket.gethostname()
-    HOST = "192.168.1.53"
+    HOST = "192.168.134.28"
     PORT = 10011
 
     server = CustomSocket(HOST, PORT)
@@ -53,7 +53,8 @@ def main():
         while True:
             try:
                 data = server.recvMsg(conn)
-                img = np.frombuffer(data, dtype=np.uint8).reshape(720, 1280, 3)
+                # img = np.frombuffer(data, dtype=np.uint8).reshape(720, 1280, 3)
+                img = np.frombuffer(data, dtype=np.uint8).reshape(360, 640, 3)
 
                 text = describe(img)
  
