@@ -36,10 +36,11 @@ def get_color_data(pic, center, d):
 
 
 RESIZE_DIM = 120
-TOPLEFT = (129,12)
-BOTRIGHT = (522,408)
+TOPLEFT = (123,16)
+BOTRIGHT = (511,408)
 
 pos_index = 0
+n_slot = 4
 label = 0
 l = []
 for i in range(10):
@@ -61,8 +62,6 @@ center_list = get_center_list(RESIZE_DIM, RESIZE_DIM, 6, 6)
 
 print("s: save, c: change label, q: quit, n:next slot")
 
-fbgr = open("train_color_bgr.csv", "a")
-flab = open("train_color_lab.csv", "a")
 
 while cap.isOpened():
     ret, frame = cap.read()
@@ -82,7 +81,9 @@ while cap.isOpened():
     # for c in center_list:
     #     draw_points(frame_show, c, 3, (0,0,0))
 
-    draw_points(frame_show, center_list[pos_index], 3, (0,0,0))
+    for n in range(n_slot):
+
+        draw_points(frame_show, center_list[(pos_index+n)%36], 3, (0,0,0))
     
 
     frame_show = cv2.resize(frame_show, (480,480))
@@ -94,11 +95,18 @@ while cap.isOpened():
     if  key == ord('q'):
         cap.release()
     elif key == ord('s'):
-        print(f"SAVING AT POSITION {pos_index}, LABEL = {label}")
-        fbgr.write(get_color_data(frame_bgr, center_list[pos_index], 3)+f",{label}\n")
-        flab.write(get_color_data(frame_lab, center_list[pos_index], 3)+f",{label}\n")
+        fbgr = open("train_color_bgr.csv", "a")
+        flab = open("train_color_lab.csv", "a")
+
+        for n in range(n_slot):
+            print(f"SAVING AT POSITION {pos_index + n}, LABEL = {label}")
+            fbgr.write(get_color_data(frame_bgr, center_list[(pos_index+n)%36], 3)+f",{label}\n")
+            flab.write(get_color_data(frame_lab, center_list[(pos_index+n)%36], 3)+f",{label}\n")
+
         cv2.imshow("frame", np.ones(frame_show.shape)*255)
         cv2.waitKey(50)
+        fbgr.close()
+        flab.close()
     elif key == ord('c'):
         print("CHANGING LABEL")
         while True:

@@ -30,9 +30,8 @@ def draw_points(pic, center_list, d, color):
 
 
 RESIZE_DIM = 120
-TOPLEFT = (129,12)
-BOTRIGHT = (522,408)
-
+TOPLEFT = (123,16)
+BOTRIGHT = (511,408)
 
 l = []
 for i in range(10):

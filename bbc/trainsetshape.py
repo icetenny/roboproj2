@@ -51,6 +51,8 @@ def get_shape_data(pic_gray, start_point):
 
 RESIZE_DIM = 120
 SLOT_DIM = 20
+TOPLEFT = (129,12)
+BOTRIGHT = (522,408)
 
 pos_index = 0
 label = 0
@@ -75,11 +77,10 @@ print(start_point_list)
 
 print("s: save, c: change label, q: quit, n:next slot")
 
-fshape = open("train_shape.csv", "a")
 
 while cap.isOpened():
     ret, frame = cap.read()
-    frame_bgr = cv2.resize(frame[:, int(f_w/2 - f_h/2) : int(f_w/2 + f_h/2)], (RESIZE_DIM, RESIZE_DIM))
+    frame_bgr = cv2.resize(frame[TOPLEFT[1]: BOTRIGHT[1], TOPLEFT[0]:BOTRIGHT[0]], (RESIZE_DIM, RESIZE_DIM))
     frame_lab = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2LAB)
     frame_gray = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2GRAY)
     frame_show = np.copy(frame_bgr)
@@ -110,10 +111,14 @@ while cap.isOpened():
     if  key == ord('q'):
         cap.release()
     elif key == ord('s'):
+        fshape = open("train_shape.csv", "a")
+
         print(f"SAVING AT POSITION {pos_index}, LABEL = {label}")
         fshape.write(get_shape_data(frame_gray, start_point_list[pos_index])+f",{label}\n")
         cv2.imshow("frame", np.ones(frame_show.shape)*255)
         cv2.waitKey(50)
+
+        fshape.close()
     elif key == ord('c'):
         print("CHANGING LABEL")
         while True:
